@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skywatch-app
+  labels:
+    app: skywatch-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: skywatch-app
+  template:
+    metadata:
+      labels:
+        app: skywatch-app
+    spec:
+      containers:
+        - name: skywatch
+          image: ghcr.io/parhavigv/skywatch-ntn:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: skywatch-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: skywatch-secrets
+                  key: DATABASE_URL
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health/ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
