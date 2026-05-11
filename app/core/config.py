@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     TOTAL_DEVICES: int = 500
     SIMULATION_INTERVAL_SECONDS: float = 1.0
+    ADMIN_API_KEY: str = "sw-admin-changeme-in-prod"
+    DEVICE_API_KEY: str = "sw-device-changeme-in-prod"
+    REDIS_URL: str = "redis://localhost:6379"
+    RATE_LIMIT_PER_MINUTE: int = 300
 
 
 @lru_cache()

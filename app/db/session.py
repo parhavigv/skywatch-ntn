@@ -1,20 +1,52 @@
-﻿from sqlalchemy import create_engine
+﻿from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import sessionmaker, Session
-from typing import Generator
+from sqlalchemy import create_engine
+from typing import AsyncGenerator, Generator
 from app.core.config import settings
 
-engine = create_engine(
-    settings.DATABASE_URL,
+ASYNC_DATABASE_URL = settings.DATABASE_URL.replace(
+    "postgresql://", "postgresql+asyncpg://"
+)
+
+async_engine = create_async_engine(
+    ASYNC_DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=20,
+    max_overflow=40,
     echo=settings.DEBUG,
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+AsyncSessionLocal = async_sessionmaker(
+    async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+sync_engine = create_engine(
+    settings.DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=5,
+)
+
+SyncSessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=sync_engine,
+)
+
+
+async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
 
 def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
+    db = SyncSessionLocal()
     try:
         yield db
     finally:
