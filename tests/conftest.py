@@ -4,14 +4,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
-os.environ["DATABASE_URL"] = "postgresql://skywatch:skywatch123@localhost:5432/skywatch_db"
+os.environ["DATABASE_URL"] = "postgresql://skywatch:skywatch123@localhost:5432/skywatch_test"
 
 from app.main import app
 from app.api.deps import get_database, get_sync_database
 from app.db.session import get_async_db, get_db
 
-SYNC_URL  = "postgresql+psycopg2://skywatch:skywatch123@localhost:5432/skywatch_db"
-ASYNC_URL = "postgresql+asyncpg://skywatch:skywatch123@localhost:5432/skywatch_db"
+SYNC_URL  = "postgresql+psycopg2://skywatch:skywatch123@localhost:5432/skywatch_test"
+ASYNC_URL = "postgresql+asyncpg://skywatch:skywatch123@localhost:5432/skywatch_test"
 
 sync_engine       = create_engine(SYNC_URL, echo=False, pool_pre_ping=True)
 async_engine      = create_async_engine(ASYNC_URL, echo=False, pool_pre_ping=True)
@@ -56,7 +56,7 @@ def pytest_unconfigure(config):
 
 def _get_device(name):
     conn = psycopg2.connect(
-        host="localhost", port=5432, dbname="skywatch_db",
+        host="localhost", port=5432, dbname="skywatch_test",
         user="skywatch", password="skywatch123"
     )
     try:
@@ -113,4 +113,5 @@ def sample_device(client):
         return d
 
     pytest.fail(f"sample_device failed [{r.status_code}]: {r.text}")
+
 
