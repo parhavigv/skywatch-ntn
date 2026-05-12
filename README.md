@@ -1,10 +1,10 @@
-# SkyWatch NTN — Cloud-Native IoT Fleet Monitor
+ï»¿# SkyWatch NTN â€” Cloud-Native IoT Fleet Monitor
 
 ![CI/CD](https://github.com/parhavigv/skywatch-ntn/actions/workflows/ci-cd.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.136-green)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-1.35-blue)
-![Tests](https://img.shields.io/badge/tests-18%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-24%20passed-brightgreen)
 
 A production-grade cloud-native IoT fleet monitoring platform ingesting real-time telemetry from **500+ simulated devices** across three industrial verticals at **500+ messages/second**.
 
@@ -16,7 +16,7 @@ A production-grade cloud-native IoT fleet monitoring platform ingesting real-tim
 |---|---|
 | Ingestion throughput | 500+ msg/s |
 | Active devices | 500 (167 Aviation, 167 Marine, 166 Power Grid) |
-| Test coverage | 18/18 passing (100%) |
+| Test coverage | 24/24 passing (63.69% coverage) |
 | Kubernetes replicas | 2 min to 8 max via HPA |
 | Anomaly detection | Real-time scoring per telemetry record |
 
@@ -29,7 +29,7 @@ A production-grade cloud-native IoT fleet monitoring platform ingesting real-tim
 | API | FastAPI 0.136 + Pydantic v2 + Swagger/OpenAPI |
 | ORM | SQLAlchemy 2.0 + Alembic migrations |
 | Database | PostgreSQL 15 |
-| Simulator | Python asyncio — 500 devices, 3 verticals |
+| Simulator | Python asyncio â€” 500 devices, 3 verticals |
 | Containers | Docker + docker-compose |
 | Orchestration | Kubernetes with HPA, liveness/readiness probes, resource limits |
 | CI/CD | GitHub Actions: pytest -> Docker build -> GHCR -> EC2 deploy |
@@ -39,11 +39,11 @@ A production-grade cloud-native IoT fleet monitoring platform ingesting real-tim
 
 ## Device Verticals
 
-**Aviation** — vibration (Hz), temperature, RPM, oil pressure, exhaust temp, altitude
+**Aviation** â€” vibration (Hz), temperature, RPM, oil pressure, exhaust temp, altitude
 
-**Marine** — fuel flow (L/h), shaft torque (Nm), sea water temp, exhaust temp, speed (knots)
+**Marine** â€” fuel flow (L/h), shaft torque (Nm), sea water temp, exhaust temp, speed (knots)
 
-**Power Grid** — voltage (V), current (A), frequency (Hz), load factor, power factor, THD%
+**Power Grid** â€” voltage (V), current (A), frequency (Hz), load factor, power factor, THD%
 
 ---
 
@@ -140,6 +140,6 @@ Every push to main triggers:
 
 ## Author
 
-Parhavi G.V. — B.Tech AI & ML, Dayananda Sagar University
+Parhavi G.V. â€” B.Tech AI & ML, Dayananda Sagar University
 
 github.com/parhavigv | linkedin.com/in/g-v-parhavi-b51030298
