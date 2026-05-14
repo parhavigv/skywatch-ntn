@@ -12,7 +12,8 @@ if config.config_file_name is not None:
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 target_metadata = DeviceBase.metadata
-
+for table in TelemetryBase.metadata.tables.values():
+    table.tometadata(target_metadata)
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
