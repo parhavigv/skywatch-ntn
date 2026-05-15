@@ -1,13 +1,15 @@
 import os
+
+# MUST be set before any app imports so session.py picks up the test DB
+os.environ["DATABASE_URL"] = "postgresql://test:test@localhost:5432/skywatch_test"
+
 import uuid
 import pytest
 import psycopg2
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-
-os.environ["DATABASE_URL"] = "postgresql://test:test@localhost:5432/skywatch_test"
 
 from app.main import app
 from app.api.deps import get_database, get_sync_database
@@ -23,8 +25,9 @@ AsyncSessionMaker = async_sessionmaker(async_engine, expire_on_commit=False, cla
 
 HEADERS = {"X-API-Key": "sw-admin-changeme-in-prod"}
 
-VERTICALS = ["aviation", "maritime", "land", "iot", "defense"]
-STATUSES  = ["online", "offline", "degraded"]
+# FIXED: uppercase to match PostgreSQL enum values
+VERTICALS = ["AVIATION", "MARINE", "POWER_GRID"]
+STATUSES  = ["ONLINE", "OFFLINE", "DEGRADED"]
 
 
 def override_get_db():
@@ -51,20 +54,17 @@ app.dependency_overrides[get_sync_database] = override_get_db
 
 
 def _seed_devices(n: int = 500):
-    """Insert n devices via raw psycopg2 so they exist before any test runs."""
     conn = psycopg2.connect(
         host="localhost", port=5432, dbname="skywatch_test",
         user="test", password="test"
     )
     try:
         cur = conn.cursor()
-        # Check how many already exist
         cur.execute("SELECT COUNT(*) FROM devices")
         existing = cur.fetchone()[0]
         needed = n - existing
         if needed <= 0:
-            return  # Already seeded
-
+            return
         rows = []
         for i in range(needed):
             rows.append((
@@ -75,7 +75,6 @@ def _seed_devices(n: int = 500):
                 STATUSES[i % len(STATUSES)],
                 True,
             ))
-
         cur.executemany(
             """
             INSERT INTO devices (id, name, vertical, location, status, is_active)
@@ -116,22 +115,18 @@ def _get_device(name):
         conn.close()
 
 
-# ── Seed BEFORE the session-scoped client is created ──────────────────────────
 def pytest_sessionstart(session):
-    """Called once before any tests run. Seeds the DB with 500 devices."""
     try:
         _seed_devices(500)
     except Exception as e:
         print(f"[conftest] WARNING: could not seed devices: {e}")
 
 
-# ── Clean engine teardown — dispose via sync_engine only to avoid loop issues ──
 def pytest_unconfigure(config):
     try:
         sync_engine.dispose()
     except Exception:
         pass
-    # Dispose the async engine's underlying sync pool safely
     try:
         async_engine.sync_engine.dispose()
     except Exception:
