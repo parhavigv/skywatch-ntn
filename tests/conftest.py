@@ -4,14 +4,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
-os.environ["DATABASE_URL"] = "postgresql://skywatch:skywatch123@localhost:5432/skywatch_test"
+os.environ["DATABASE_URL"] = "postgresql://test:test@localhost:5432/skywatch_test"
 
 from app.main import app
 from app.api.deps import get_database, get_sync_database
 from app.db.session import get_async_db, get_db
 
-SYNC_URL  = "postgresql+psycopg2://skywatch:skywatch123@localhost:5432/skywatch_test"
-ASYNC_URL = "postgresql+asyncpg://skywatch:skywatch123@localhost:5432/skywatch_test"
+SYNC_URL  = "postgresql+psycopg2://test:test@localhost:5432/skywatch_test"
+ASYNC_URL = "postgresql+asyncpg://test:test@localhost:5432/skywatch_test"
 
 sync_engine       = create_engine(SYNC_URL, echo=False, pool_pre_ping=True)
 async_engine      = create_async_engine(ASYNC_URL, echo=False, pool_pre_ping=True)
@@ -19,7 +19,6 @@ SyncSession       = sessionmaker(bind=sync_engine, autocommit=False, autoflush=F
 AsyncSessionMaker = async_sessionmaker(async_engine, expire_on_commit=False, class_=AsyncSession)
 
 HEADERS = {"X-API-Key": "sw-admin-changeme-in-prod"}
-
 
 def override_get_db():
     db = SyncSession()
@@ -31,18 +30,15 @@ def override_get_db():
     finally:
         db.close()
 
-
 async def override_get_async_db():
     async with AsyncSessionMaker() as session:
         async with session.begin():
             yield session
 
-
 app.dependency_overrides[get_db]            = override_get_db
 app.dependency_overrides[get_async_db]      = override_get_async_db
 app.dependency_overrides[get_database]      = override_get_async_db
 app.dependency_overrides[get_sync_database] = override_get_db
-
 
 def pytest_unconfigure(config):
     try:
@@ -53,11 +49,10 @@ def pytest_unconfigure(config):
     except Exception:
         pass
 
-
 def _get_device(name):
     conn = psycopg2.connect(
         host="localhost", port=5432, dbname="skywatch_test",
-        user="skywatch", password="skywatch123"
+        user="test", password="test"
     )
     try:
         cur = conn.cursor()
@@ -80,19 +75,16 @@ def _get_device(name):
     finally:
         conn.close()
 
-
 @pytest.fixture(scope="session")
 def client():
     with TestClient(app, raise_server_exceptions=True) as c:
         yield c
-
 
 @pytest.fixture(scope="session")
 def sample_device(client):
     d = _get_device("test-device-AVN-9999")
     if d:
         return d
-
     r = client.post(
         "/api/v1/devices/",
         json={
@@ -103,15 +95,10 @@ def sample_device(client):
         },
         headers=HEADERS,
     )
-
     if r.status_code == 201:
         return r.json()
-
     if r.status_code == 409:
         d = _get_device("test-device-AVN-9999")
         assert d is not None, "409 but device not in DB"
         return d
-
     pytest.fail(f"sample_device failed [{r.status_code}]: {r.text}")
-
-
