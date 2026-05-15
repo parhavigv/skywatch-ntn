@@ -1,6 +1,5 @@
 from pydantic_settings import BaseSettings
 from pydantic import ConfigDict
-from functools import lru_cache
 
 
 class Settings(BaseSettings):
@@ -19,7 +18,6 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 300
 
 
-@lru_cache()
 def get_settings() -> Settings:
     return Settings()
 
