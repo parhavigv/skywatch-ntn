@@ -1,6 +1,9 @@
-import os, pytest, psycopg2
+import os
+import uuid
+import pytest
+import psycopg2
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
@@ -20,6 +23,10 @@ AsyncSessionMaker = async_sessionmaker(async_engine, expire_on_commit=False, cla
 
 HEADERS = {"X-API-Key": "sw-admin-changeme-in-prod"}
 
+VERTICALS = ["aviation", "maritime", "land", "iot", "defense"]
+STATUSES  = ["online", "offline", "degraded"]
+
+
 def override_get_db():
     db = SyncSession()
     try:
@@ -30,24 +37,57 @@ def override_get_db():
     finally:
         db.close()
 
+
 async def override_get_async_db():
     async with AsyncSessionMaker() as session:
         async with session.begin():
             yield session
+
 
 app.dependency_overrides[get_db]            = override_get_db
 app.dependency_overrides[get_async_db]      = override_get_async_db
 app.dependency_overrides[get_database]      = override_get_async_db
 app.dependency_overrides[get_sync_database] = override_get_db
 
-def pytest_unconfigure(config):
+
+def _seed_devices(n: int = 500):
+    """Insert n devices via raw psycopg2 so they exist before any test runs."""
+    conn = psycopg2.connect(
+        host="localhost", port=5432, dbname="skywatch_test",
+        user="test", password="test"
+    )
     try:
-        import asyncio
-        loop = asyncio.new_event_loop()
-        loop.run_until_complete(async_engine.dispose())
-        loop.close()
-    except Exception:
-        pass
+        cur = conn.cursor()
+        # Check how many already exist
+        cur.execute("SELECT COUNT(*) FROM devices")
+        existing = cur.fetchone()[0]
+        needed = n - existing
+        if needed <= 0:
+            return  # Already seeded
+
+        rows = []
+        for i in range(needed):
+            rows.append((
+                str(uuid.uuid4()),
+                f"seed-device-{existing + i:05d}",
+                VERTICALS[i % len(VERTICALS)],
+                f"Location-{i}",
+                STATUSES[i % len(STATUSES)],
+                True,
+            ))
+
+        cur.executemany(
+            """
+            INSERT INTO devices (id, name, vertical, location, status, is_active)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (name) DO NOTHING
+            """,
+            rows,
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
 
 def _get_device(name):
     conn = psycopg2.connect(
@@ -75,10 +115,34 @@ def _get_device(name):
     finally:
         conn.close()
 
+
+# ── Seed BEFORE the session-scoped client is created ──────────────────────────
+def pytest_sessionstart(session):
+    """Called once before any tests run. Seeds the DB with 500 devices."""
+    try:
+        _seed_devices(500)
+    except Exception as e:
+        print(f"[conftest] WARNING: could not seed devices: {e}")
+
+
+# ── Clean engine teardown — dispose via sync_engine only to avoid loop issues ──
+def pytest_unconfigure(config):
+    try:
+        sync_engine.dispose()
+    except Exception:
+        pass
+    # Dispose the async engine's underlying sync pool safely
+    try:
+        async_engine.sync_engine.dispose()
+    except Exception:
+        pass
+
+
 @pytest.fixture(scope="session")
 def client():
     with TestClient(app, raise_server_exceptions=True) as c:
         yield c
+
 
 @pytest.fixture(scope="session")
 def sample_device(client):
